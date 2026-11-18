@@ -85,7 +85,14 @@ await runBars({
     }
 
     const bar: Bar | undefined = batch.bars.find((b) => b.symbol === SYMBOL);
-    if (bar !== undefined) closes.push(Number(bar.c));
+    // A bar with a non-finite or non-positive close carries no price
+    // information (a malformed or empty bar): it must not enter the
+    // history, or a zero close would fake a bottomless dip on the
+    // next bar and trigger a buy on nothing.
+    if (bar !== undefined) {
+      const c = Number(bar.c);
+      if (Number.isFinite(c) && c > 0) closes.push(c);
+    }
 
     const held = state.positions.get(SYMBOL);
     const close = state.close(SYMBOL);
